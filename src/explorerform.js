@@ -88,7 +88,7 @@ function executeQueriesAndDisplayResults(terms, preds, depth, canvas) {
     }).catch(e => {
         log(`Problem: ${e.statusText} (${e.status})`);
     })
-    
+
 };
 
 var predicatedictionary = {};
@@ -155,7 +155,7 @@ function setupLookingForTerms(div) {
                         ?option ?predicate [].
                         OPTIONAL { ?option rdfs:label ?label }
                         FILTER(!ISBLANK(?option))
-                        FILTER(REGEX(STR(?option), "${params.term}", "i") || REGEX(?label, "${params.term}", "i")) 
+                        FILTER(REGEX(STR(?option), "${params.term}", "i") || REGEX(?label, "${params.term}", "i"))
                     } `;
                 return { query: query, format: 'json' };
             },
@@ -193,6 +193,18 @@ function setupIgnoringPredicates(div) {
         tokenSeparators: [','],
         tags: "true",
         minimumInputLength: 4,
+        templateSelection : function (tag, container){
+     		// here we are finding option element of tag and
+        // if it has property 'locked' we will add class 'locked-tag'
+        // to be able to style element in select
+      	  var $option = $('.explorer-form-predicates option[value="'+tag.id+'"]');
+           console.log($option)
+           if ($option.attr('locked')){
+              $(container).addClass('locked-tag');
+              tag.locked = true;
+           }
+           return tag.text;
+        },
         ajax: {
             type: "POST",
             delay: 250,
@@ -201,7 +213,7 @@ function setupIgnoringPredicates(div) {
                 var query = `
                     SELECT DISTINCT ?option WHERE {
                         [] ?option [].
-                        FILTER(REGEX(STR(?option), "${params.term}", "i")) 
+                        FILTER(REGEX(STR(?option), "${params.term}", "i"))
                     } `;
                 return { query: query, format: 'json' };
             },
@@ -222,10 +234,17 @@ function setupIgnoringPredicates(div) {
                 };
             },
         }
-    });
+    }).on('select2:unselecting', function(e){
+   		// before removing tag we check option element of tag and
+      // if it has property 'locked' we will create error to prevent all select2 functionality
+       if ($(e.params.args.data.element).attr('locked')) {
+           e.select2.pleaseStop();
+        }
+     });
 
     predicatesToIgnore.forEach(x => {
         var option = new Option(x, x, true, true);
+        option.setAttribute("locked",true)
         $('.explorer-form-predicates').append(option).trigger('change');
     });
 };
@@ -255,7 +274,7 @@ function setUpToggleTabs(div) {
             { "targets": 2, "visible": false, "searchable": false },
         ],
     });
-    
+
     // Adding a list of entities in a table
     d = $('<div id="tabs-2"><table id="explorer-form-table-entities"><thead><tr><th>Visible</th><th>Entity</th></tr></thead><tbody></tbody></table></div>');
     tabs.append(d);
@@ -314,8 +333,8 @@ export default class ExplorerForm {
         let t = this;
 
         var d = $('<div class="form-group"></div>');
-        d.append('<label class="form-control-sm" for="cepth">SPARQL endpoint:</label>');
-        var endpoint = $(`<input type="text" class="form-control form-control-sm" id="explorer-form-sparqlendpoint" value="${sparqlendpointurl}">`);
+        //d.append('<label class="form-control-sm" for="cepth">SPARQL endpoint:</label>');
+        var endpoint = $(`<input type="hidden" class="form-control form-control-sm" id="explorer-form-sparqlendpoint" value="${sparqlendpointurl}">`);
         d.append(endpoint);
         t.div.append(d);
 
