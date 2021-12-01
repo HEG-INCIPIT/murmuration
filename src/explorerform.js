@@ -19,13 +19,14 @@ function getEndpoint() {
 }
 
 async function executeQuery(sparqlendpoint, query) {
-    console.log(query);
+    let csrf = $("[name=csrfmiddlewaretoken]").val()
     var g = { nodes: [], links: [] };
     await $.ajax({
         type: "POST",
         url: sparqlendpoint,
-        data: { query: query, format: 'json' },
+        data: { query: query, csrfmiddlewaretoken: csrf, format: 'json' },
         success: function (response) {
+            response = JSON.parse(response)
             if (response.results.bindings.length > 0) {
                 var predicates = response.head.vars.filter(x => x.includes('predicate')).sort();
                 for (var i in response.results.bindings) {
@@ -139,10 +140,10 @@ function updateTable(canvas) {
 function setupLookingForTerms(div) {
     // Setup looking for terms
     div.append('<div class="form-group"><label class="form-control-sm" for="term">Elements to explore:</label><select class="explorer-form-terms form-control form-control-sm col-12" multiple="multiple" id="term" name="term"></select></div>');
-
+    let csrf = $("[name=csrfmiddlewaretoken]").val()
     $('.explorer-form-terms').select2({
         tokenSeparators: [','],
-        tags: "true",
+        tags: false,
         minimumInputLength: 4,
         ajax: {
             type: "POST",
@@ -150,17 +151,19 @@ function setupLookingForTerms(div) {
             url: getEndpoint, // this one needs to be the function
             data: function (params) {
                 var query = `
-                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    PREFIX schema: <https://schema.org/>
                     SELECT DISTINCT ?option ?label WHERE {
                         ?option ?predicate [].
-                        OPTIONAL { ?option rdfs:label ?label }
+                        OPTIONAL { ?option schema:name ?label }
                         FILTER(!ISBLANK(?option))
+                        FILTER(!REGEX(STR(?option), "https://schema.org", "i"))
                         FILTER(REGEX(STR(?option), "${params.term}", "i") || REGEX(?label, "${params.term}", "i"))
                     } `;
-                return { query: query, format: 'json' };
+                return { query: query, csrfmiddlewaretoken: csrf, format: 'json' };
             },
             headers: { Accept: "application/json" },
             processResults: function (data, params) {
+                data = JSON.parse(data)
                 params.page = params.page || 1;
                 var results = [];
 
@@ -188,7 +191,7 @@ function setupLookingForTerms(div) {
 function setupIgnoringPredicates(div) {
     // Setup looking for predicates
     div.append('<div class="form-group"><label class="form-control-sm" for="predicate">Predicates to ignore:</label><select class="explorer-form-predicates form-control form-control-sm col-12" multiple="multiple" id="predicate" name="predicate"></select></div>');
-
+    let csrf = $("[name=csrfmiddlewaretoken]").val()
     $('.explorer-form-predicates').select2({
         tokenSeparators: [','],
         tags: "true",
@@ -215,10 +218,11 @@ function setupIgnoringPredicates(div) {
                         [] ?option [].
                         FILTER(REGEX(STR(?option), "${params.term}", "i"))
                     } `;
-                return { query: query, format: 'json' };
+                return { query: query, csrfmiddlewaretoken: csrf, format: 'json' };
             },
             headers: { Accept: "application/json" },
             processResults: function (data, params) {
+                data = JSON.parse(data)
                 params.page = params.page || 1;
                 var results = [];
                 for (var i in data.results.bindings) {
