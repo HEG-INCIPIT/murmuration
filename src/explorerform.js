@@ -31,7 +31,7 @@ async function executeQuery(sparqlendpoint, query) {
                 var predicates = response.head.vars.filter(x => x.includes('predicate')).sort();
                 for (var i in response.results.bindings) {
                     var binding = response.results.bindings[i];
-
+                    console.log(binding)
                     predicates.forEach((predicate) => {
                         var index = parseInt(predicate.match(/\d+/g));
 
@@ -156,7 +156,6 @@ function setupLookingForTerms(div) {
                         ?option ?predicate [].
                         OPTIONAL { ?option schema:name ?label }
                         FILTER(!ISBLANK(?option))
-                        FILTER(!REGEX(STR(?option), "https://schema.org", "i"))
                         FILTER(REGEX(STR(?option), "${params.term}", "i") || REGEX(?label, "${params.term}", "i"))
                     } `;
                 return { query: query, csrfmiddlewaretoken: csrf, format: 'json' };
@@ -201,7 +200,6 @@ function setupIgnoringPredicates(div) {
         // if it has property 'locked' we will add class 'locked-tag'
         // to be able to style element in select
       	  var $option = $('.explorer-form-predicates option[value="'+tag.id+'"]');
-           console.log($option)
            if ($option.attr('locked')){
               $(container).addClass('locked-tag');
               tag.locked = true;

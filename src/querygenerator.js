@@ -4,9 +4,9 @@ var regexpredicatevars = /\?predicate\d+\w+/g;
 var generateQueries = function (terms, depth = 3, relationsToBeOmitted = []) {
     if(depth <= 0 || terms.length <= 1)
         return [];
-    
+
     var allarrays = [];
-    
+
     // Create unique pairs from the terms
     var pairs = [].concat(...terms.map((v, i) => terms.slice(i + 1).map( w => [v, w])));
 
@@ -17,7 +17,7 @@ var generateQueries = function (terms, depth = 3, relationsToBeOmitted = []) {
 
         var begin = `<${pair[0]}>`;
         var end = `<${pair[1]}>`;
-        
+
         for(var i = 1; i < depth + 1; i++) {
             // prepare triple patterns
             var start = i - 1;
@@ -29,7 +29,7 @@ var generateQueries = function (terms, depth = 3, relationsToBeOmitted = []) {
             var t1 = last.map(x => x + p1);
             var t2 = last.map(x => x + p2);
             last = t1.concat(t2);
-            
+
             // add new arrays to list of arrays for this pair
             arr = arr.concat(last);
         }
@@ -39,15 +39,15 @@ var generateQueries = function (terms, depth = 3, relationsToBeOmitted = []) {
             var variables = new Set([...s.matchAll(regexvars)].map(m => parseInt(m[1])));
             var maxv = Math.max(...variables);
             variables.delete(maxv);
-            
-            s = s.trim().replace(`?x${maxv}`, end);
 
+            s = s.trim().replace(`?x${maxv}`, end);
             // bind the pair to variables, this makes life for the diagram easier
             s += `BIND (${begin} AS ?x0) `;
             s += `BIND (${end} AS ?x${maxv}) `;
-            
+
             // variables in triple patterns shouldn't correspond with elements in our pair
             variables.forEach(function(v) {
+                s += `OPTIONAL { ?x1 schema:name ?label }`
                 s += `FILTER (?x${v} != ${begin}) `;
                 s += `FILTER (?x${v} != ${end}) `;
             });
@@ -68,8 +68,7 @@ var generateQueries = function (terms, depth = 3, relationsToBeOmitted = []) {
             varpairs.forEach((varpair) => {
                 s += `FILTER (?x${varpair[0]} != ?x${varpair[1]}) `;
             });
-
-            arr[i] = `SELECT DISTINCT * { ${s} }`;
+            arr[i] = `PREFIX schema: <https://schema.org/> SELECT DISTINCT * { ${s} }`;
         });
 
         allarrays = allarrays.concat(arr);
